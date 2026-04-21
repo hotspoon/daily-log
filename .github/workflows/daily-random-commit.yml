@@ -2,14 +2,11 @@ name: Daily Random Commit
 
 on:
   schedule:
-    - cron: "13 1 * * *"
-    - cron: "47 4 * * *"
-    - cron: "22 7 * * *"
-    - cron: "55 10 * * *"
-    - cron: "18 13 * * *"
-    - cron: "41 16 * * *"
-    - cron: "09 19 * * *"
-    - cron: "36 22 * * *"
+    - cron: "15 2 * * *"
+    - cron: "40 5 * * *"
+    - cron: "10 9 * * *"
+    - cron: "30 13 * * *"
+    - cron: "50 15 * * *"
   workflow_dispatch:
 
 permissions:
