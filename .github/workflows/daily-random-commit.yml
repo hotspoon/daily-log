@@ -1,12 +1,16 @@
-name: Daily Random Commit
+name: Daily Random Commit (WIB)
 
 on:
   schedule:
-    - cron: "15 2 * * *"
-    - cron: "40 5 * * *"
-    - cron: "10 9 * * *"
-    - cron: "30 13 * * *"
-    - cron: "50 15 * * *"
+    # 8 slot sehari yang kira-kira pas WIB pagi-sore-malam
+    - cron: "02 2 * * *"   # 09:02 WIB
+    - cron: "30 4 * * *"   # 11:30 WIB
+    - cron: "15 7 * * *"   # 14:15 WIB
+    - cron: "45 9 * * *"   # 16:45 WIB
+    - cron: "20 12 * * *"  # 19:20 WIB
+    - cron: "50 14 * * *"  # 21:50 WIB
+    - cron: "10 17 * * *"  # 00:10 WIB (malam)
+    - cron: "40 19 * * *"  # 02:40 WIB (malam)
   workflow_dispatch:
 
 permissions:
@@ -30,28 +34,29 @@ jobs:
         run: |
           set -e
 
-          TODAY=$(date -u +%F)
+          TODAY=$(date +%F)
           FILE="heartbeat.md"
 
-          # Kalau hari ini sudah ada commit dari workflow ini, stop
+          # Jika sudah ada commit hari ini, skip
           if git log --since="${TODAY} 00:00:00" --until="${TODAY} 23:59:59" --grep="chore: daily update ${TODAY}" --oneline | grep -q .; then
             echo "Already committed today. Skipping."
             exit 0
           fi
 
-          # Random gate: hanya sebagian run yang jadi commit
-          HOUR=$(date -u +%H)
-          MIN=$(date -u +%M)
-          DAY=$(date -u +%d)
+          # Random gate: hanya sebagian run yang commit
+          HOUR=$(date +%H)
+          MIN=$(date +%M)
+          DAY=$(date +%d)
 
-          DICE=$(( (10#$HOUR * 7 + 10#$MIN + 10#$DAY) % 4 ))
+          DICE=$(( (HOUR*7 + MIN + DAY) % 4 ))
 
           if [ "$DICE" -ne 0 ]; then
             echo "Not selected this run. Skipping."
             exit 0
           fi
 
-          echo "- ${TODAY} $(date -u '+%H:%M:%S UTC')" >> "$FILE"
+          # Append timestamp ke file
+          echo "- ${TODAY} $(date '+%H:%M:%S WIB')" >> "$FILE"
 
           git add "$FILE"
 
