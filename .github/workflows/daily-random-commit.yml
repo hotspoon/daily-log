@@ -1,0 +1,67 @@
+name: Daily Random Commit
+
+on:
+  schedule:
+    - cron: "13 1 * * *"
+    - cron: "47 4 * * *"
+    - cron: "22 7 * * *"
+    - cron: "55 10 * * *"
+    - cron: "18 13 * * *"
+    - cron: "41 16 * * *"
+    - cron: "09 19 * * *"
+    - cron: "36 22 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Maybe commit today
+        shell: bash
+        run: |
+          set -e
+
+          TODAY=$(date -u +%F)
+          FILE="heartbeat.md"
+
+          # Kalau hari ini sudah ada commit dari workflow ini, stop
+          if git log --since="${TODAY} 00:00:00" --until="${TODAY} 23:59:59" --grep="chore: daily update ${TODAY}" --oneline | grep -q .; then
+            echo "Already committed today. Skipping."
+            exit 0
+          fi
+
+          # Random gate: hanya sebagian run yang jadi commit
+          HOUR=$(date -u +%H)
+          MIN=$(date -u +%M)
+          DAY=$(date -u +%d)
+
+          DICE=$(( (10#$HOUR * 7 + 10#$MIN + 10#$DAY) % 4 ))
+
+          if [ "$DICE" -ne 0 ]; then
+            echo "Not selected this run. Skipping."
+            exit 0
+          fi
+
+          echo "- ${TODAY} $(date -u '+%H:%M:%S UTC')" >> "$FILE"
+
+          git add "$FILE"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore: daily update ${TODAY}"
+          git push
