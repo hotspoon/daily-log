@@ -49,10 +49,7 @@ jobs:
 
           DICE=$(( (10#$HOUR * 7 + 10#$MIN + 10#$DAY) % 4 ))
 
-          if [ "$DICE" -ne 0 ]; then
-            echo "Not selected this run. Skipping."
-            exit 0
-          fi
+          echo "Testing mode: force commit"
 
           echo "- ${TODAY} $(date -u '+%H:%M:%S UTC')" >> "$FILE"
 
