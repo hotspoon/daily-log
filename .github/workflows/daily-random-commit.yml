@@ -43,8 +43,7 @@ jobs:
           touch "$FILE"
 
           # Hitung commit hari ini pakai marker khusus
-          COUNT=$(git log --since="${TODAY} 00:00:00" --until="${TODAY} 23:59:59" --grep="[daily-bot]" --oneline | wc -l)
-
+          COUNT=$(git log --since="${TODAY} 00:00:00" --until="${TODAY} 23:59:59" --fixed-strings --grep='[daily-bot]' --oneline | wc -l)
           # Kalau belum ada commit -> wajib commit
           if [ "$COUNT" -eq 0 ]; then
             echo "First commit today is required."
