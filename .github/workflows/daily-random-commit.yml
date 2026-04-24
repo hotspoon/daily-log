@@ -1,16 +1,14 @@
-name: Daily Random Commit (WIB)
+name: Daily Commit Minimum 1 (WIB)
 
 on:
   schedule:
-    # 8 slot sehari yang kira-kira pas WIB pagi-sore-malam
-    - cron: "02 2 * * *"   # 09:02 WIB
-    - cron: "30 4 * * *"   # 11:30 WIB
-    - cron: "15 7 * * *"   # 14:15 WIB
-    - cron: "45 9 * * *"   # 16:45 WIB
-    - cron: "20 12 * * *"  # 19:20 WIB
-    - cron: "50 14 * * *"  # 21:50 WIB
-    - cron: "10 17 * * *"  # 00:10 WIB (malam)
-    - cron: "40 19 * * *"  # 02:40 WIB (malam)
+    - cron: "02 1 * * *"   # 08:02 WIB
+    - cron: "25 3 * * *"   # 10:25 WIB
+    - cron: "10 6 * * *"   # 13:10 WIB
+    - cron: "40 8 * * *"   # 15:40 WIB
+    - cron: "15 11 * * *"  # 18:15 WIB
+    - cron: "35 13 * * *"  # 20:35 WIB
+    - cron: "05 16 * * *"  # 23:05 WIB
   workflow_dispatch:
 
 permissions:
@@ -29,34 +27,88 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Maybe commit today
+      - name: Commit at least once per day, sometimes more
         shell: bash
         run: |
           set -e
 
-          TODAY=$(date +%F)
+          export TZ=Asia/Jakarta
+
           FILE="heartbeat.md"
-
-          # Jika sudah ada commit hari ini, skip
-          if git log --since="${TODAY} 00:00:00" --until="${TODAY} 23:59:59" --grep="chore: daily update ${TODAY}" --oneline | grep -q .; then
-            echo "Already committed today. Skipping."
-            exit 0
-          fi
-
-          # Random gate: hanya sebagian run yang commit
+          TODAY=$(date +%F)
+          NOW=$(date '+%H:%M:%S WIB')
           HOUR=$(date +%H)
-          MIN=$(date +%M)
-          DAY=$(date +%d)
+          WEEKDAY=$(date +%u)   # 1=Mon ... 7=Sun
 
-          DICE=$(( (HOUR*7 + MIN + DAY) % 4 ))
+          touch "$FILE"
 
-          if [ "$DICE" -ne 0 ]; then
-            echo "Not selected this run. Skipping."
-            exit 0
+          # Hitung commit hari ini pakai marker khusus
+          COUNT=$(git log --since="${TODAY} 00:00:00" --until="${TODAY} 23:59:59" --grep="[daily-bot]" --oneline | wc -l)
+
+          # Kalau belum ada commit -> wajib commit
+          if [ "$COUNT" -eq 0 ]; then
+            echo "First commit today is required."
+          else
+            # Maks 3 commit per hari
+            if [ "$COUNT" -ge 3 ]; then
+              echo "Reached max commits for today."
+              exit 0
+            fi
+
+            CHANCE=8
+
+            # Jam produktif
+            if [ "$HOUR" -ge 9 ] && [ "$HOUR" -lt 12 ]; then
+              CHANCE=18
+            elif [ "$HOUR" -ge 12 ] && [ "$HOUR" -lt 18 ]; then
+              CHANCE=28
+            elif [ "$HOUR" -ge 18 ] && [ "$HOUR" -lt 22 ]; then
+              CHANCE=16
+            fi
+
+            # Weekend lebih rendah
+            if [ "$WEEKDAY" -ge 6 ]; then
+              CHANCE=$((CHANCE - 5))
+              [ "$CHANCE" -lt 5 ] && CHANCE=5
+            fi
+
+            # Commit ke-3 lebih jarang
+            if [ "$COUNT" -eq 2 ]; then
+              CHANCE=$((CHANCE / 2))
+              [ "$CHANCE" -lt 5 ] && CHANCE=5
+            fi
+
+            ROLL=$((RANDOM % 100))
+
+            if [ "$ROLL" -ge "$CHANCE" ]; then
+              echo "Skip extra commit. Roll=$ROLL Chance=$CHANCE"
+              exit 0
+            fi
+
+            echo "Extra commit selected. Roll=$ROLL Chance=$CHANCE"
           fi
 
-          # Append timestamp ke file
-          echo "- ${TODAY} $(date '+%H:%M:%S WIB')" >> "$FILE"
+          NOTES=(
+            "checked in"
+            "small update"
+            "notes refreshed"
+            "minor progress"
+            "daily touch"
+            "quick sync"
+            "maintenance note"
+          )
+
+          MESSAGES=(
+            "chore: daily activity"
+            "docs: daily activity log"
+            "chore: daily activity update"
+            "docs: daily activity note"
+          )
+
+          NOTE_INDEX=$((RANDOM % ${#NOTES[@]}))
+          MSG_INDEX=$((RANDOM % ${#MESSAGES[@]}))
+
+          echo "- ${TODAY} ${NOW} | ${NOTES[$NOTE_INDEX]}" >> "$FILE"
 
           git add "$FILE"
 
@@ -65,5 +117,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: daily update ${TODAY}"
+          git commit -m "${MESSAGES[$MSG_INDEX]} [daily-bot] (${TODAY})"
           git push
